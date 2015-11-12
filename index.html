@@ -1,0 +1,395 @@
+<!doctype html>
+<html lang="en">
+
+	<head>
+		<meta charset="utf-8">
+
+		<title>Redis - The Remote Dictionary Server</title>
+
+		<meta name="description" content="Redis - The Remote Dictionary Server">
+		<meta name="author" content="Eric Halvorsen">
+
+		<meta name="apple-mobile-web-app-capable" content="yes">
+		<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+
+		<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, minimal-ui">
+
+		<link rel="stylesheet" href="css/reveal.css">
+		<link rel="stylesheet" href="css/theme/black.css" id="theme">
+		<!-- <link rel="stylesheet" href="css/theme/sky.css" id="theme"> -->
+
+		<!-- Code syntax highlighting -->
+		<link rel="stylesheet" href="lib/css/zenburn.css">
+
+		<!-- Printing and PDF exports -->
+		<script>
+			var link = document.createElement( 'link' );
+			link.rel = 'stylesheet';
+			link.type = 'text/css';
+			link.href = window.location.search.match( /print-pdf/gi ) ? 'css/print/pdf.css' : 'css/print/paper.css';
+			document.getElementsByTagName( 'head' )[0].appendChild( link );
+		</script>
+
+		<!--[if lt IE 9]>
+		<script src="lib/js/html5shiv.js"></script>
+		<![endif]-->
+	</head>
+	<body>
+		<div class="reveal">
+			<div class="slides">
+				<section>
+				  <img data-src="redis.png" />
+					<h3>The Remote Dictionary Server</h3>
+					<p>
+						<small><a href="https://github.com/ericmhalvorsen">Eric Halvorsen</a></small>
+					</p>
+				</section>
+
+				<section>
+				  <section>
+						<h3>What is Redis?</h3>
+						<ul>
+						  <li>Likely the fastest NoSql database in the world.</li>
+						  <li>Allows for processing of a extraordinary amount of data.</li>
+						  <li>From Google:
+						    <blockquote style="font-size: 0.8em;" cite="https://www.google.com/search?q=what+is+redis">Redis is an in-memory but persistent on disk database, so it represents a different trade off where very high write and read speed is achieved with the limitation of data sets that can't be larger than memory.</blockquote>
+						  </li>
+						  <li class="fragment"><span>Redis is an in-memory cache store </span><span class="fragment">... but what does that mean?</span></li>
+						<ul>
+					</section>
+					<section>
+					  <h3>Caches in ten seconds</h3>
+					  <div class="fragment">
+					    <pre><code class="javascript" data-trim contenteditable style="font-size: 18px;">
+127.0.0.1:6379> SET nightly-job-finished 6:00AM
+OK
+              </code></pre>
+            </div>
+            <div class="fragment">
+              <pre><code class="javascript" data-trim contenteditable style="font-size: 18px;">
+127.0.0.1:6379> GET nightly-job-finished
+"6:00AM"
+					    </code></pre>
+						</div>
+					  <span class="fragment">...and that's all!</span>
+					</section>
+					<section>
+					  <h3>More Redis-Specific Examples</h3>
+					  <pre><code class="javascript" data-trim contenteditable style="font-size: 18px;">
+127.0.0.1:6379> SET currentuser Max
+OK
+127.0.0.1:6379> GET currentuser
+"Max"
+127.0.0.1:6379> SET count 1
+OK
+127.0.0.1:6379> GET count
+"1"
+127.0.0.1:6379> INCR count
+(integer) 2
+127.0.0.1:6379> GET count
+"2"
+					  </code></pre>
+					</section>
+					<section>
+					  <h3>What is Redis?</h3>
+						<p>
+							<span>Redis is an in-memory cache store.</span>
+						</p>
+						<ul>
+						  <li class="fragment">Created in 2009 by Salvatore Sanfillipo.</li>
+							<li class="fragment">Allows Key => Data Structure.</li>
+							<li class="fragment">Data in memory, but sent to disk periodically.</li>
+							<li class="fragment">Incredibly fast - easily 100K ops/sec on the right hardware.</li>
+							<li class="fragment">Open Source under BSD license.</li>
+							<li class="fragment">Referred to as the 'Swiss Army Knife' of cache stores.</li>
+						</ul>
+					</section>
+				</section>
+
+				<section>
+				  <h3>Who's Using Redis?</h3>
+				  <ul>
+				    <li class="fragment">Twitter</li>
+				    <li class="fragment">Pinterest</li>
+				    <li class="fragment">Github</li>
+				    <li class="fragment">Snapchat</li>
+				    <li class="fragment">StackOverflow</li>
+				  </ul>
+				  <small class="fragment"><a href="http://techstacks.io/tech/redis">...and many more.</a></small>
+				</section>
+
+				<section>
+				  <section>
+					  <h3>Data Structures In Redis</h3>
+					  <ul>
+					    <li>String - plain text</li>
+					    <li>List - an ordered list of strings</li>
+					    <li>Hash - a collection of keys and values</li>
+					    <li>Set - a collection of unique strings</li>
+					    <li>Sorted Set - like a set, but each element has a rank</li>
+					  </ul>
+					  <p class="fragment">...but no nested data structures.</p>
+					</section>
+					<section>
+					  <h3>String</h3>
+					  <table>
+					    <tr class="fragment">
+					      <th>KEY</th>
+					      <th>=></th>
+					      <th>VALUE</th>
+					    </tr>
+					    <tr class="fragment">
+					      <td>nightly-job-finished</td>
+					      <td>=></td>
+					      <td>6:00AM</td>
+					    </tr>
+					  </table>
+					  <small class="fragment">Great for: timestamps, flags, state</small>
+					</section>
+					<section>
+					  <h3>List</h3>
+					  <table>
+					    <tr class="fragment">
+					      <th>KEY</th>
+					      <th>=></th>
+					      <th>VALUE</th>
+					    </tr>
+					    <tr class="fragment">
+					      <td>jobs-to-complete</td>
+					      <td>=></td>
+					      <td>
+					      	<table>
+					      	  <tr><td>Job 1</td></tr>
+					      	  <tr><td>Job 2</td></tr>
+					      	  <tr><td>Job 3</td></tr>
+					      	</table>
+					      </td>
+					    </tr>
+					  </table>
+					  <small class="fragment">Great for: job queueing, log aggregation</small>
+					</section>
+					<section>
+					  <h3>Hash</h3>
+					  <table>
+					    <tr class="fragment">
+					      <th>KEY</th>
+					      <th>=></th>
+					      <th>VALUE</th>
+					    </tr>
+					    <tr class="fragment">
+					      <td>patient-data</td>
+					      <td>=></td>
+					      <td>
+					      	<table>
+					      	  <tr><td>8675309 => { name: 'Ronald' }</td></tr>
+					      	  <tr><td>8675310 => { name: 'George' }</td></tr>
+					      	  <tr><td>8675311 => { name: 'Phillip' }</td></tr>
+					      	  <tr><td>8675311 => { name: 'John' }</td></tr>
+					      	</table>
+					      </td>
+					    </tr>
+					  </table>
+					  <small class="fragment">Great for: data storage within redis, shopping carts, quick lookups</small>
+					</section>
+					<section>
+					  <h3>Set</h3>
+					  <table>
+					    <tr class="fragment">
+					      <th>KEY</th>
+					      <th>=></th>
+					      <th>VALUE</th>
+					    </tr>
+					    <tr class="fragment">
+					      <td>high-risk-patients</td>
+					      <td>=></td>
+					      <td>
+					      	<table>
+					      	  <tr><td>1280965</td></tr>
+					      	  <tr><td>1280967</td></tr>
+					      	  <tr><td>1280974</td></tr>
+					      	</table>
+					      </td>
+					    </tr>
+					  </table>
+					  <small class="fragment">Great for: access checks, member lookups, unique session ip addresses</small>
+					</section>
+					<section>
+					  <h3>Sorted Set</h3>
+					  <table>
+					    <tr class="fragment">
+					      <th>KEY</th>
+					      <th>=></th>
+					      <th>VALUE</th>
+					    </tr>
+					    <tr class="fragment">
+					      <td>reddit-upvotes</td>
+					      <td>=></td>
+					      <td>
+					      	<table>
+					      	  <tr><td>Comment 1, Score 10</td></tr>
+					      	  <tr><td>Comment 2, Score 8</td></tr>
+					      	  <tr><td>Comment 3, Score 3</td></tr>
+					      	</table>
+					      </td>
+					    </tr>
+					  </table>
+					  <small class="fragment">Great for: leaderboards, following relationships</small>
+					</section>
+				</section>
+
+				<section>
+					<h3>Other Uses</h3>
+					<ul>
+					  <li>Redis has a Publish / Subscribe mechanism - can synchronize many servers or webapps</li>
+					  <img data-src="redis-pubsub.png" width="300" height="220" style="display: block; margin-left: 30%;"/>
+					  <li>Can set an expiration date on keys if the data is prone to change.</li>
+					</ul>
+				</section>
+
+				</section>
+
+				<section>
+				  <h3>So how should I use it?</h3>
+				  <p class="fragment">Redis is like lego for data. Yes, you can just store data in it. But the real power comes when you think of it as a toolset, where you can build exactly the right tool to do the job.</p>
+				  <p class="fragment">Thinking about how to efficiently model your problem is the hard part.</p>
+				  <p class="fragment">Let's look at some examples.</p>
+				</section>
+
+				<section>
+				  <h3>Caching a Database Call</h3>
+				  <p class="fragment">This is the most common pattern for regular cache stores.</p>
+				  <ul>
+				    <li class="fragment">Ask the cache if it has the data, return it if so.</li>
+				    <li class="fragment">If it does not, query the database for the data.</li>
+				    <li class="fragment">Save the data to the cache.</li>
+				    <li class="fragment">Return the data requested.</li>
+				  </ul>
+				  <p class="fragment">While Redis is perfectly suited to be used this way, it doesn't really tap into the
+				  real power that Redis has.</p>
+				</section>
+
+				<section>
+				  <h3>Fast Object Store</h3>
+				  <h4>Shopping Cart</h4>
+				  <p>Normally, a SQL database can be used to store any set of data, including object representation. This is not a
+				  bad strategy, it merely becomes too slow as the application starts to exponentially increase the number of requests. Once the table gets big enough, each person's experience slows down to the point where they probably don't feel like waiting around.</p>
+				  <p class="fragment">How can we keep it fast, other than starting to horizontally scale the database?</p>
+				</section>
+
+				<section>
+				  <h3>Fast Object Store</h3>
+				  <h4>Shopping Cart</h4>
+				  <p>Use Hash to store the cart data. Incrementing product counts can be done with HINCRBY, fetching of all products can be achieved with HMGET, and the performance stays the same no matter how many objects are present.</p>
+				</section>
+
+				<section>
+				  <h3>Leaderboards</h3>
+				  <p>A very common use case. Since redis allows to collect large numbers of ids into a set with a score associated, it becomes possible to rank users, comments, tweets, or pretty much anything by any count of metric or statistic you want.</p>
+				  <ul style="font-size: 0.8em;">
+				    <li class="fragment">Use ZADD when a new item needs to be added.</li>
+				    <li class="fragment">Use ZINCRBY to increment the score of an element when someone 'does something'.</li>
+				    <li class="fragment">Use ZRANGE or ZREVRANGE (or ZRANGEBYRANK, ZRANGEBYSCORE, ZREVRANGEBYRANK, or ZREVRANGEBYSCORE) to get elements with the highest score (or the lowest).</li>
+				  </ul>
+				</section>
+
+				<section>
+				  <h3>Relationships</h3>
+				  <p class="fragment">For a set of users, lets record who the users are friends with. If we create a set with
+				  all of user 1's friends, and the same for user 2, Redis lets us do some pretty cool things right out of the box.</p>
+				  <ul style="font-size: 0.8em;">
+				    <li class="fragment">SCARD user:1:friends => How many friends does user 1 have?</li>
+				    <li class="fragment">SINTER user:1:friends user:2:friends => Common Friends</li>
+				    <li class="fragment">SDIFF user:1:friends user:2:friends => Unique Friends</li>
+				    <li class="fragment">SUNION user:1:friends user:2:friends => ALL THE FRIENDS</li>
+				  </ul>
+				</section>
+
+				<section>
+				  <h3>Patient Search</h3>
+				  <ul style="font-size: 0.8em;">
+				    <li class="fragment">Store all the patient data in a hash: personID => { data object represented as a string}</li>
+				    <li class="fragment">For each patient, find all prefixes that would match the patient's name and create sets where each key is the prefix. Then, add the id of that patient to those sets.</li>
+				    <li class="fragment">When a user logs in, create ONE additional set for that user that contains all the patients they are allowed to see.</li>
+				    <li class="fragment">When that user types in a search term, split up all the terms as if they are prefixes.</li>
+				    <li class="fragment">Find the sets associated with the prefixes, and take the intersection of all of them, including the set containing the patients the user can access.</li>
+				    <li class="fragment">At this point we have a list of ids that match both the search term and the patients the user can see. Just call an HMGET on the Hash with the patient data for those ids to get the attributes.</li>
+				  </ul>
+				</section>
+
+				<section>
+				  <h3>A Note About Persistence</h3>
+				  <p class="fragment" style="font-size: 0.8em;">Redis DOES persist to the disk by default. So if you're worried about your data being lost permanently, have no fear.</p>
+				  <p class="fragment" style="font-size: 0.8em;">Redis has two mechanisms - the more popular today being that Redis compresses it's contents
+				  and writes them to a flat RDB file, which is loaded next time Redis needs it (usually on startup).</p>
+				  <p class="fragment" style="font-size: 0.8em;">Redis needs to fork to do this though - which generates overhead.</p>
+				</section>
+
+				<section>
+				  <h3>About Replication</h3>
+				  <p class="fragment" style="font-size: 0.8em;">Redis more recently added the ability to work in clusters. With this, one can set up a group of Redis instances, all on different CPU's, that can talk to each other and coordinate data.</p>
+				  <p class="fragment" style="font-size: 0.8em;">Since Redis only propagates downstream, you need to remember that things that need to be globally consistent should only be written to the top level, or master, Redis node.</p>
+				  <p class="fragment" style="font-size: 0.8em;">...but - if you can take advantage of the fact that a given user will always be routed to the same Redis instance, then you can effectively split the data load among your Redis instances evenly.</p>
+				</section>
+
+				<section>
+				  <h3>How others have used Redis:</h3>
+				  <ul style="font-size: 0.8em;">
+            <li>
+				      <a href="http://highscalability.com/blog/2013/7/8/the-architecture-twitter-uses-to-deal-with-150m-active-users.html">The Architecture Twitter Uses To Deal With 150M Active Users, 300K QPS, A 22 MB/S Firehose, And Send Tweets In Under 5 Seconds</a>
+				    </li>
+				    <li>
+				      <a href="http://instagram-engineering.tumblr.com/post/12202313862/storing-hundreds-of-millions-of-simple-key-value">Storing hundreds of millions of simple key-value pairs in Redis</a>
+				    </li>
+				    <li>
+				      <a href="http://highscalability.com/blog/2012/4/9/the-instagram-architecture-facebook-bought-for-a-cool-billio.html">The Instagram Architecture Facebook Bought For A Cool Billion Dollars</a>
+				    </li>
+				    <li>
+				      <a href="https://github.com/blog/530-how-we-made-github-fast">How We Made Github Fast</a>
+				    </li>
+				    <li>
+				      <a href="http://code.flickr.net/2013/03/26/using-redis-as-a-secondary-index-for-mysql/">Using Redis as a Secondary Index for MySQL</a>
+				    </li>
+				    <li>
+				      <a href="http://code.flickr.net/2012/12/12/highly-available-real-time-notifications/">Highly Available Real Time Push Notifications and You</a>
+				    </li>
+				</section>
+
+				<section>
+				  <h3>But Wait! There's a ton we didn't cover!</h3>
+				  <p>You can find all the information you need at <a href="http://redis.io">redis.io</a>. Aside from that, there
+				  are hundreds of articles written by people who have added Redis to their stack with great success. Go exploring!</p>
+				</section>
+
+				<section>
+				  <h3>Thoughts? Ideas? Questions?</h3>
+				  <img data-src="redis-icon.png" />
+				</section>
+			</div>
+		</div>
+
+		<script src="lib/js/head.min.js"></script>
+		<script src="js/reveal.js"></script>
+		<script>
+			// Full list of configuration options available at:
+			// https://github.com/hakimel/reveal.js#configuration
+			Reveal.initialize({
+				controls: true,
+				progress: true,
+				history: true,
+				center: true,
+
+				transition: 'convex', // none/fade/slide/convex/concave/zoom
+
+				// Optional reveal.js plugins
+				dependencies: [
+					{ src: 'lib/js/classList.js', condition: function() { return !document.body.classList; } },
+					{ src: 'plugin/markdown/marked.js', condition: function() { return !!document.querySelector( '[data-markdown]' ); } },
+					{ src: 'plugin/markdown/markdown.js', condition: function() { return !!document.querySelector( '[data-markdown]' ); } },
+					{ src: 'plugin/highlight/highlight.js', async: true, condition: function() { return !!document.querySelector( 'pre code' ); }, callback: function() { hljs.initHighlightingOnLoad(); } },
+					{ src: 'plugin/zoom-js/zoom.js', async: true },
+					{ src: 'plugin/notes/notes.js', async: true }
+				]
+			});
+		</script>
+	</body>
+</html>
